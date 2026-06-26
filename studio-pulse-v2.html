@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Pulse</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0A0A0F;
+  --bg2:#0F0F18;
+  --panel:#13131F;
+  --border:#1E1E30;
+  --orange:#FF5C1A;
+  --orange2:#FF8C4A;
+  --purple:#7C3AED;
+  --purple2:#A78BFA;
+  --teal:#00D4AA;
+  --teal2:#5EEAD4;
+  --white:#F8F7FF;
+  --muted:#5A5A7A;
+  --soft:#9090B0;
+}
+
+html,body{width:100%;height:100%;background:var(--bg);font-family:'Space Grotesk',sans-serif;overflow:hidden;color:var(--white)}
+
+/* CANVAS */
+.deck{width:100vw;height:100vh;position:relative;overflow:hidden}
+
+/* BACKGROUND AMBIENT */
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0;transition:opacity 1.2s ease}
+.orb1{width:600px;height:600px;background:radial-gradient(circle,#FF5C1A22,transparent 70%);top:-100px;right:-100px}
+.orb2{width:500px;height:500px;background:radial-gradient(circle,#7C3AED22,transparent 70%);bottom:-100px;left:-100px}
+.orb3{width:400px;height:400px;background:radial-gradient(circle,#00D4AA18,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%)}
+.orb.show{opacity:1}
+
+/* GRID OVERLAY */
+.grid-overlay{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:60px 60px;opacity:0.3}
+
+/* SLIDES */
+.slide{position:absolute;inset:0;opacity:0;pointer-events:none;z-index:1;display:flex;flex-direction:column;justify-content:center;transition:opacity 0.7s cubic-bezier(.4,0,.2,1),transform 0.7s cubic-bezier(.4,0,.2,1);transform:translateX(60px)}
+.slide.active{opacity:1;pointer-events:all;transform:translateX(0)}
+.slide.exit-left{opacity:0;transform:translateX(-60px)}
+
+/* SLIDE PADDING */
+.sp{padding:0 8vw}
+
+/* ═══════════════════════════
+   SLIDE 1 — COVER
+═══════════════════════════ */
+#s1{align-items:flex-start;padding:0}
+
+.s1-left{position:absolute;left:0;top:0;bottom:0;width:55%;display:flex;flex-direction:column;justify-content:center;padding:0 8vw 0 8vw;z-index:2}
+.s1-right{position:absolute;right:0;top:0;bottom:0;width:48%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.5rem;padding:3rem;z-index:2}
+
+.eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--orange);font-weight:600;display:flex;align-items:center;gap:10px;margin-bottom:1.5rem}
+.eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--orange)}
+
+.hero-title{font-family:'Playfair Display',serif;font-size:clamp(56px,6.5vw,92px);line-height:1.0;margin-bottom:1.5rem}
+.hero-title .line1{display:block;font-weight:700;color:var(--white)}
+.hero-title .line2{display:block;font-style:italic;font-weight:400;color:var(--orange)}
+
+.hero-sub{font-size:15px;color:var(--soft);line-height:1.75;max-width:420px;margin-bottom:2.5rem;font-weight:300}
+
+.hero-pills{display:flex;flex-wrap:wrap;gap:10px}
+.pill{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;color:var(--soft);letter-spacing:.06em;cursor:default;transition:all .3s}
+.pill:hover{border-color:var(--orange);color:var(--orange)}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:var(--orange)}
+
+/* floating cards right side */
+.float-card{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:1.5rem 1.75rem;width:100%;max-width:320px;transition:transform .4s ease;cursor:default}
+.float-card:hover{transform:translateY(-4px)}
+.fc-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+.fc-big{font-family:'Playfair Display',serif;font-size:52px;font-weight:700;line-height:1;color:var(--white)}
+.fc-big span{color:var(--teal);font-style:italic}
+.fc-desc{font-size:12px;color:var(--soft);margin-top:.5rem;line-height:1.5}
+.fc-row{display:flex;align-items:center;gap:.75rem;margin-top:.8rem}
+.fc-tag{font-size:10px;padding:3px 10px;border-radius:100px;background:#1A1A2E;border:1px solid var(--border);color:var(--soft)}
+
+.stat-card{background:linear-gradient(135deg,#1A0A30,#0D0D1A);border:1px solid #2A1A4A;border-radius:20px;padding:1.5rem;width:100%;max-width:320px;transition:transform .4s ease;cursor:default}
+.stat-card:hover{transform:translateY(-4px)}
+.stat-bar-wrap{margin-top:1rem;display:flex;flex-direction:column;gap:8px}
+.stat-row{display:flex;align-items:center;gap:10px}
+.stat-name{font-size:11px;color:var(--soft);width:90px;flex-shrink:0}
+.stat-track{flex:1;height:4px;background:#1E1E30;border-radius:2px;overflow:hidden}
+.stat-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.stat-val{font-size:11px;color:var(--soft);width:30px;text-align:right}
+
+/* ═══════════════════════════
+   SLIDE 2 — WHY
+═══════════════════════════ */
+#s2{padding:0 8vw;justify-content:center}
+.s2-header{margin-bottom:2.5rem}
+.s2-title{font-family:'Playfair Display',serif;font-size:clamp(36px,4vw,58px);line-height:1.1;margin-bottom:.75rem}
+.s2-title em{font-style:italic;color:var(--orange)}
+.s2-sub{font-size:14px;color:var(--soft);max-width:500px;line-height:1.7}
+
+.why-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.wcard{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:1.75rem;cursor:pointer;transition:all .35s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
+.wcard::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .35s;border-radius:20px}
+.wcard:hover{transform:translateY(-6px);border-color:transparent}
+.wcard:hover::before{opacity:1}
+.wcard.c1::before{background:linear-gradient(135deg,#FF5C1A12,#FF8C4A08)}
+.wcard.c2::before{background:linear-gradient(135deg,#7C3AED12,#A78BFA08)}
+.wcard.c3::before{background:linear-gradient(135deg,#00D4AA12,#5EEAD408)}
+.wcard.c1:hover{box-shadow:0 0 0 1px var(--orange),0 20px 40px #FF5C1A18}
+.wcard.c2:hover{box-shadow:0 0 0 1px var(--purple),0 20px 40px #7C3AED18}
+.wcard.c3:hover{box-shadow:0 0 0 1px var(--teal),0 20px 40px #00D4AA18}
+
+.wcard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.2rem}
+.wcard-num{font-family:'Playfair Display',serif;font-size:48px;font-weight:700;line-height:1;opacity:.12}
+.wcard-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ic1{background:#FF5C1A15;border:1px solid #FF5C1A30}
+.ic2{background:#7C3AED15;border:1px solid #7C3AED30}
+.ic3{background:#00D4AA15;border:1px solid #00D4AA30}
+
+.wcard-title{font-size:16px;font-weight:600;color:var(--white);margin-bottom:.6rem;line-height:1.3}
+.wcard-body{font-size:13px;color:var(--soft);line-height:1.65;font-weight:300}
+.wcard-tag{display:inline-flex;align-items:center;gap:6px;margin-top:1rem;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.ct1{color:var(--orange)}
+.ct2{color:var(--purple2)}
+.ct3{color:var(--teal)}
+
+.rule-banner{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1.25rem;border-left:3px solid var(--orange)}
+.rule-num{font-family:'Playfair Display',serif;font-size:28px;font-style:italic;color:var(--orange);flex-shrink:0}
+.rule-text{font-size:13px;color:var(--soft);line-height:1.6}
+.rule-text strong{color:var(--white);font-weight:500}
+
+/* ═══════════════════════════
+   SLIDE 3 — FRAMEWORK
+═══════════════════════════ */
+#s3{padding:0 8vw;justify-content:center}
+
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--border);border-radius:24px;overflow:hidden;margin-bottom:1.25rem}
+.phase{padding:2rem 1.75rem;border-right:1px solid var(--border);cursor:pointer;transition:background .3s;position:relative}
+.phase:last-child{border-right:none}
+.phase:hover{background:#0F0F1E}
+
+.phase-num{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.pn1{color:var(--orange)}
+.pn2{color:var(--purple2)}
+.pn3{color:var(--teal)}
+
+.phase-icon{font-size:32px;margin-bottom:1rem}
+.phase-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--white);margin-bottom:.5rem}
+.phase-title em{font-style:italic}
+.phase-word{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;font-weight:500}
+.phase-body{font-size:12.5px;color:var(--soft);line-height:1.7;font-weight:300;margin-bottom:1rem}
+.phase-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pchip{font-size:10px;padding:4px 10px;border-radius:100px;font-weight:500;letter-spacing:.05em}
+.pch1{background:#FF5C1A15;color:var(--orange);border:1px solid #FF5C1A25}
+.pch2{background:#7C3AED15;color:var(--purple2);border:1px solid #7C3AED25}
+.pch3{background:#00D4AA15;color:var(--teal);border:1px solid #00D4AA25}
+
+.phase-bar{position:absolute;bottom:0;left:0;right:0;height:3px;transform:scaleX(0);transform-origin:left;transition:transform .4s ease}
+.phase:hover .phase-bar{transform:scaleX(1)}
+.pb1{background:linear-gradient(90deg,var(--orange),var(--orange2))}
+.pb2{background:linear-gradient(90deg,var(--purple),var(--purple2))}
+.pb3{background:linear-gradient(90deg,var(--teal),var(--teal2))}
+
+/* bottom tool row */
+.tool-row-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tool-item{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:1rem 1.2rem;display:flex;align-items:center;justify-content:space-between;transition:all .3s;cursor:default}
+.tool-item:hover{border-color:var(--border);background:#15151F;transform:translateY(-2px)}
+.tool-info{}
+.tool-name{font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px}
+.tool-desc{font-size:11px;color:var(--muted)}
+.tool-badge{font-size:9px;padding:4px 9px;border-radius:100px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.tb-free{background:#00D4AA15;color:var(--teal);border:1px solid #00D4AA25}
+.tb-vis{background:#7C3AED15;color:var(--purple2);border:1px solid #7C3AED25}
+.tb-warm{background:#FF5C1A15;color:var(--orange);border:1px solid #FF5C1A25}
+
+/* ═══════════════════════════
+   NAV
+═══════════════════════════ */
+.nav{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1rem;background:#0D0D18CC;backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:100px;padding:10px 20px;z-index:100}
+.nbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+.nbtn:hover:not(:disabled){background:var(--orange);border-color:var(--orange);color:var(--white)}
+.nbtn:disabled{opacity:.25;cursor:default}
+.ndots{display:flex;gap:6px;align-items:center}
+.ndot{width:6px;height:6px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .3s}
+.ndot.active{width:20px;border-radius:3px;background:var(--orange)}
+.nctr{font-size:11px;color:var(--muted);min-width:36px;text-align:center;letter-spacing:.06em}
+
+/* PROGRESS LINE TOP */
+.progress-line{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--orange),var(--orange2));transition:width .6s cubic-bezier(.4,0,.2,1);z-index:100}
+
+/* SLIDE LABEL */
+.slide-label{position:fixed;top:2rem;right:2.5rem;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);z-index:10;transition:opacity .3s}
+
+/* CURSOR GLOW */
+.cursor-glow{position:fixed;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,#FF5C1A0A,transparent 70%);pointer-events:none;transform:translate(-50%,-50%);transition:left .15s ease,top .15s ease;z-index:0}
+
+/* COUNTER ANIM */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.slide.active .hero-title,.slide.active .eyebrow,.slide.active .hero-sub,.slide.active .hero-pills,
+.slide.active .s2-header,.slide.active .why-cards,.slide.active .rule-banner,
+.slide.active .s3-title,.slide.active .phases,.slide.active .tool-row-wrap{
+  animation:fadeUp .6s ease both
+}
+.slide.active .eyebrow{animation-delay:.1s}
+.slide.active .hero-title{animation-delay:.18s}
+.slide.active .hero-sub{animation-delay:.26s}
+.slide.active .hero-pills{animation-delay:.34s}
+.slide.active .s2-header{animation-delay:.1s}
+.slide.active .why-cards{animation-delay:.22s}
+.slide.active .rule-banner{animation-delay:.34s}
+.slide.active .s3-title{animation-delay:.1s}
+.slide.active .phases{animation-delay:.22s}
+.slide.active .tool-row-wrap{animation-delay:.36s}
+
+.s3-title{margin-bottom:1.5rem}
+</style>
+</head>
+<body>
+
+<div class="cursor-glow" id="glow"></div>
+<div class="grid-overlay"></div>
+<div class="ambient">
+  <div class="orb orb1" id="orb1"></div>
+  <div class="orb orb2" id="orb2"></div>
+  <div class="orb orb3" id="orb3"></div>
+</div>
+<div class="progress-line" id="progress"></div>
+<div class="slide-label" id="slabel">Cover</div>
+
+<div class="deck">
+
+  <!-- ══ SLIDE 1 ══ -->
+  <div class="slide active" id="s1">
+    <div class="s1-left">
+      <div class="eyebrow">Architecture & Design Studio</div>
+      <h1 class="hero-title">
+        <span class="line1">Studio</span>
+        <span class="line2">Pulse</span>
+      </h1>
+      <p class="hero-sub">A bold framework for running an honest staff questionnaire — to rebuild energy, co-create vision, and reconnect your team after a hard stretch.</p>
+      <div class="hero-pills">
+        <div class="pill"><span class="pill-dot"></span>3 Phases</div>
+        <div class="pill"><span class="pill-dot"></span>1–2 Weeks</div>
+        <div class="pill"><span class="pill-dot"></span>100% Anonymous</div>
+        <div class="pill"><span class="pill-dot"></span>Google Forms Ready</div>
+      </div>
+    </div>
+    <div class="s1-right">
+      <div class="float-card">
+        <div class="fc-label">Team engagement impact</div>
+        <div class="fc-big">72<span>%</span></div>
+        <div class="fc-desc">of design staff report higher motivation when their input shapes studio direction</div>
+        <div class="fc-row">
+          <span class="fc-tag">Gallup 2023</span>
+          <span class="fc-tag">Design firms</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="fc-label">What staff need most</div>
+        <div class="stat-bar-wrap">
+          <div class="stat-row">
+            <span class="stat-name">Be heard</span>
+            <div class="stat-track"><div class="stat-fill" style="width:0%;background:linear-gradient(90deg,var(--orange),var(--orange2))" data-w="88%"></div></div>
+            <span class="stat-val">88%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">Clear path</span>
+            <div class="stat-track"><div class="stat-fill" style="width:0%;background:linear-gradient(90deg,var(--purple),var(--purple2))" data-w="74%"></div></div>
+            <span class="stat-val">74%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">Shared vision</span>
+            <div class="stat-track"><div class="stat-fill" style="width:0%;background:linear-gradient(90deg,var(--teal),var(--teal2))" data-w="69%"></div></div>
+            <span class="stat-val">69%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">Recognition</span>
+            <div class="stat-track"><div class="stat-fill" style="width:0%;background:linear-gradient(90deg,#C49A3A,#F0C44A)" data-w="61%"></div></div>
+            <span class="stat-val">61%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 2 ══ -->
+  <div class="slide" id="s2">
+    <div class="s2-header">
+      <div class="eyebrow">The case for asking</div>
+      <h2 class="s2-title">Why a questionnaire <em>works</em><br>when morale is low</h2>
+      <p class="s2-sub">A well-designed questionnaire does three things at once — it listens, it diagnoses, and it co-creates. That's what makes it the right tool for this moment.</p>
+    </div>
+    <div class="why-cards">
+      <div class="wcard c1">
+        <div class="wcard-top">
+          <div class="wcard-num">01</div>
+          <div class="wcard-icon ic1">🧭</div>
+        </div>
+        <div class="wcard-title">Gives stress a shape</div>
+        <div class="wcard-body">People leave surveys feeling heard. Naming what's wrong is the first step to fixing it — and it shifts energy from passive frustration to active input.</div>
+        <div class="wcard-tag ct1">→ Morale</div>
+      </div>
+      <div class="wcard c2">
+        <div class="wcard-top">
+          <div class="wcard-num">02</div>
+          <div class="wcard-icon ic2">🤝</div>
+        </div>
+        <div class="wcard-title">Rebuilds shared vision</div>
+        <div class="wcard-body">After a hard stretch, people drift. A questionnaire resurfaces what everyone values — career growth, collaboration, and the work they actually want to do.</div>
+        <div class="wcard-tag ct2">→ Alignment</div>
+      </div>
+      <div class="wcard c3">
+        <div class="wcard-top">
+          <div class="wcard-num">03</div>
+          <div class="wcard-icon ic3">📐</div>
+        </div>
+        <div class="wcard-title">Creates a brief for change</div>
+        <div class="wcard-body">The results become your roadmap. You can't redesign a studio culture without a brief — this is how you write one, built from the inside out.</div>
+        <div class="wcard-tag ct3">→ Strategy</div>
+      </div>
+    </div>
+    <div class="rule-banner">
+      <div class="rule-num">#1</div>
+      <div class="rule-text"><strong>The golden rule:</strong> Only run this if leadership is genuinely ready to act on the results. A questionnaire that leads to silence is worse than none at all — it confirms the team's fear that their voice doesn't matter.</div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3 ══ -->
+  <div class="slide" id="s3">
+    <div class="eyebrow s3-title">The framework — 3 phases</div>
+    <div class="phases">
+      <div class="phase">
+        <div class="phase-num pn1">Phase 01</div>
+        <div class="phase-icon">🌡️</div>
+        <div class="phase-word">Emotional baseline</div>
+        <div class="phase-title"><em>Feel</em></div>
+        <div class="phase-body">Open with mood and energy questions. Simple scales, not essays. This reveals the real state of the team before asking about work or direction.</div>
+        <div class="phase-chips">
+          <span class="pchip pch1">Mood 1–5</span>
+          <span class="pchip pch1">Energy level</span>
+          <span class="pchip pch1">Belonging</span>
+        </div>
+        <div class="phase-bar pb1"></div>
+      </div>
+      <div class="phase">
+        <div class="phase-num pn2">Phase 02</div>
+        <div class="phase-icon">⚙️</div>
+        <div class="phase-word">Work & collaboration</div>
+        <div class="phase-title"><em>Think</em></div>
+        <div class="phase-body">Move into work: communication, workload, collaboration, career path. Use multiple choice + one open field per section. Max 12 questions total.</div>
+        <div class="phase-chips">
+          <span class="pchip pch2">Team dynamics</span>
+          <span class="pchip pch2">Workload</span>
+          <span class="pchip pch2">Career clarity</span>
+        </div>
+        <div class="phase-bar pb2"></div>
+      </div>
+      <div class="phase">
+        <div class="phase-num pn3">Phase 03</div>
+        <div class="phase-icon">🌱</div>
+        <div class="phase-word">Vision & aspiration</div>
+        <div class="phase-title"><em>Dream</em></div>
+        <div class="phase-body">End with aspiration. Ask what excites them, what projects they want, and what one change would make the biggest difference. Vision gets co-created here.</div>
+        <div class="phase-chips">
+          <span class="pchip pch3">Dream projects</span>
+          <span class="pchip pch3">Culture wish</span>
+          <span class="pchip pch3">One bold idea</span>
+        </div>
+        <div class="phase-bar pb3"></div>
+      </div>
+    </div>
+    <div class="tool-row-wrap">
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-name">Google Forms</div>
+          <div class="tool-desc">Anonymous, familiar, easy to analyse</div>
+        </div>
+        <span class="tool-badge tb-free">Free</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-name">Typeform</div>
+          <div class="tool-desc">Warmer UX, higher completion rate</div>
+        </div>
+        <span class="tool-badge tb-warm">Engaging</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-info">
+          <div class="tool-name">Miro / Notion</div>
+          <div class="tool-desc">Share results back visually with the team</div>
+        </div>
+        <span class="tool-badge tb-vis">Visual</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nbtn" id="prev" onclick="go(-1)" disabled>←</button>
+  <div class="ndots">
+    <div class="ndot active" onclick="goTo(0)"></div>
+    <div class="ndot" onclick="goTo(1)"></div>
+    <div class="ndot" onclick="goTo(2)"></div>
+  </div>
+  <span class="nctr" id="ctr">1 / 3</span>
+  <button class="nbtn" id="next" onclick="go(1)">→</button>
+</nav>
+
+<script>
+const slides=document.querySelectorAll('.slide');
+const dots=document.querySelectorAll('.ndot');
+const labels=['Cover','Why it works','The Framework'];
+const orbs=[document.getElementById('orb1'),document.getElementById('orb2'),document.getElementById('orb3')];
+let cur=0;
+
+function goTo(n){
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('exit-left');
+  setTimeout(()=>slides[cur].classList.remove('exit-left'),700);
+  cur=n;
+  slides[cur].classList.add('active');
+  dots.forEach((d,i)=>d.classList.toggle('active',i===cur));
+  document.getElementById('ctr').textContent=(cur+1)+' / '+slides.length;
+  document.getElementById('prev').disabled=cur===0;
+  document.getElementById('next').disabled=cur===slides.length-1;
+  document.getElementById('progress').style.width=((cur+1)/slides.length*100)+'%';
+  document.getElementById('slabel').textContent=labels[cur];
+  orbs.forEach((o,i)=>o.classList.toggle('show',i===cur));
+  if(cur===0) animateBars();
+}
+
+function go(d){const n=cur+d;if(n>=0&&n<slides.length)goTo(n);}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1);
+});
+
+// cursor glow
+const glow=document.getElementById('glow');
+document.addEventListener('mousemove',e=>{
+  glow.style.left=e.clientX+'px';
+  glow.style.top=e.clientY+'px';
+});
+
+// animate stat bars
+function animateBars(){
+  setTimeout(()=>{
+    document.querySelectorAll('.stat-fill').forEach(f=>{
+      f.style.width=f.dataset.w;
+    });
+  },600);
+}
+
+// touch swipe
+let tx=0;
+document.addEventListener('touchstart',e=>tx=e.touches[0].clientX,{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=tx-e.changedTouches[0].clientX;
+  if(Math.abs(dx)>50) go(dx>0?1:-1);
+},{passive:true});
+
+// init
+document.getElementById('progress').style.width='33.3%';
+orbs[0].classList.add('show');
+animateBars();
+</script>
+</body>
+</html>
